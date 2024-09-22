@@ -1,4 +1,4 @@
-package com.tekekitchen.payments.teke_kitchen_payments;
+package com.tekekitchen.payments;
 
 import io.flutter.embedding.android.FlutterActivity;
 

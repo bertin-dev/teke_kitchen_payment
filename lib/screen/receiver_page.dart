@@ -2,62 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:teke_kitchen_payments/themes/app_color.dart';
 import '../controllers/history_controller.dart';
 import '../controllers/qr_controller.dart';
 
-/*class ReceiverPage extends StatelessWidget {
-  final QRController qrController = Get.put(QRController());
+class ReceiverPage extends StatefulWidget {
+  const ReceiverPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('QR Code Generator')),
-      body: Center(
-        child: Obx(() {
-          // Retourne toujours un Widget, même si la condition n'est pas remplie
-          if (qrController.phoneNumber.value.isEmpty) {
-            return Text('No phone number set');
-          } else {
-            return QrImageView(
-              data: qrController.phoneNumber.value,
-              size: 250,
-              version: QrVersions.auto,
-              embeddedImage: AssetImage('assets/images/icon.jpg'), // Assurez-vous que le logo est bien là
-            );
-          }
-        }),
+  State<ReceiverPage> createState() => _ReceiverPageState();
+}
 
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {
-          Get.defaultDialog(
-            title: 'Enter Phone Number',
-            content: TextField(
-              keyboardType: TextInputType.phone,
-              controller: qrController.phoneController,
-              decoration: InputDecoration(hintText: 'Enter phone number'),
-            ),
-            textConfirm: 'Generate',
-            onConfirm: () {
-              // Déterminer l'opérateur et sauvegarder
-              String operator = qrController.determineOperator(qrController.phoneController.text);
-              qrController.savePhoneNumber(qrController.phoneController.text);
-              Get.back();
-              Get.snackbar('Operator', 'Le numéro appartient à $operator');
-            },
-          );
-        },
-      ),
-    );
-  }
-}*/
-
-
-
-class ReceiverPage extends StatelessWidget {
+class _ReceiverPageState extends State<ReceiverPage> {
   final HistoryController controller = Get.find<HistoryController>();
+  double _initialBrightness = 0.5; // Luminosité par défaut (peut être changée)
+
+  @override
+  void initState() {
+    super.initState();
+    _setMaxBrightness(); // Augmente la luminosité au maximum quand la page est ouverte
+  }
+
+  @override
+  void dispose() {
+    _restoreBrightness(); // Restaure la luminosité normale quand la page est fermée
+    super.dispose();
+  }
+
+  // Fonction pour augmenter la luminosité au maximum
+  Future<void> _setMaxBrightness() async {
+    // Sauvegarder la luminosité actuelle
+    _initialBrightness = await ScreenBrightness().current;
+    // Augmenter la luminosité au maximum
+    await ScreenBrightness().setScreenBrightness(1.0);
+  }
+
+  // Fonction pour restaurer la luminosité d'origine
+  Future<void> _restoreBrightness() async {
+    // Restaurer la luminosité à celle d'avant
+    await ScreenBrightness().setScreenBrightness(_initialBrightness);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +53,7 @@ class ReceiverPage extends StatelessWidget {
     ));
 
     return Scaffold(
-      backgroundColor: AppColor.primary,
+      //backgroundColor: AppColor.primary,
       appBar: AppBar(title: Padding(
         padding: const EdgeInsets.only(left: 16.0), // Ajout d'un padding à gauche
         child: Text('Recevoir Paiements',
@@ -78,22 +63,28 @@ class ReceiverPage extends StatelessWidget {
         iconTheme: IconThemeData(color: AppColor.primary), // Change la couleur des icônes
       ),
       body: Center(
-        child: Column(
+        child: Obx(() => Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            QrImageView(
-              data: '${controller.primaryNumber.value}/${controller.secondaryNumber.value}',
-              size: 250,
-              version: QrVersions.auto,
-              embeddedImage: AssetImage('assets/images/icon.jpg'), // Assurez-vous que le logo est bien là
-            ),
-            SizedBox(height: 20),
-            Obx(() => Text(
-              'Principal: ${controller.primaryNumber.value}\nSecondaire: ${controller.secondaryNumber.value}',
-              textAlign: TextAlign.center,
-            )),
+            if(controller.primaryNumber.value.isEmpty && controller.secondaryNumber.value.isEmpty)...{
+              Center(
+                child: Text("Veuillez renseigner vos numéros de téléphone\n pour générer votre QR code"),
+              )
+            } else...{
+              QrImageView(
+                data: '${controller.primaryNumber.value}/${controller.secondaryNumber.value}',
+                size: 250,
+                version: QrVersions.auto,
+                embeddedImage: AssetImage('assets/images/icon.jpg'), // Assurez-vous que le logo est bien là
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Principal: ${controller.primaryNumber.value}\nSecondaire: ${controller.secondaryNumber.value}',
+                textAlign: TextAlign.center,
+              ),
+            },
           ],
-        ),
+        )),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColor.secondaryColor,
@@ -110,7 +101,7 @@ class ReceiverPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Enter Phone Numbers'),
+        title: Center(child: Text('Entrer vos numéros de téléphone')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -119,7 +110,7 @@ class ReceiverPage extends StatelessWidget {
               onChanged: (value) {
                 primaryNumber = value;
               },
-              decoration: InputDecoration(hintText: 'Primary Number'),
+              decoration: InputDecoration(hintText: 'Principal'),
               controller: TextEditingController(text: primaryNumber),
             ),
             TextField(
@@ -127,7 +118,7 @@ class ReceiverPage extends StatelessWidget {
               onChanged: (value) {
                 secondaryNumber = value;
               },
-              decoration: InputDecoration(hintText: 'Secondary Number'),
+              decoration: InputDecoration(hintText: 'Secondaire'),
               controller: TextEditingController(text: secondaryNumber),
             ),
           ],
@@ -137,18 +128,17 @@ class ReceiverPage extends StatelessWidget {
             onPressed: () {
               Get.back();
             },
-            child: Text('Cancel'),
+            child: Text('Annuler'),
           ),
           TextButton(
             onPressed: () {
               controller.saveNumbers(primaryNumber, secondaryNumber);
               Get.back();
             },
-            child: Text('Save'),
+            child: Text('Sauvegarder'),
           ),
         ],
       ),
     );
   }
 }
-

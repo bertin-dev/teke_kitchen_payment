@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryController extends GetxController {
@@ -9,8 +10,14 @@ class HistoryController extends GetxController {
   var isLoading = true.obs;  // Ajout d'un état de chargement
 
   @override
-  void onInit() {
+  Future<void> onInit() async {
     super.onInit();
+    // Demander la permission d'appel
+    var status = await Permission.phone.status;
+    if (!status.isGranted) {
+      status = await Permission.phone.request();
+    }
+
     _loadData();
   }
 

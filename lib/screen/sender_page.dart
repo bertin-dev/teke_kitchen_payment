@@ -4,6 +4,7 @@ import 'package:android_intent_plus/flag.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../controllers/history_controller.dart';
@@ -20,6 +21,7 @@ class _SenderPageState extends State<SenderPage> {
   QRViewController? controller;
   final QRController qrController = Get.put(QRController());
   final HistoryController historyController = Get.find<HistoryController>();
+  Logger logger = Logger();
 
   @override
   void reassemble() {
@@ -117,14 +119,16 @@ class _SenderPageState extends State<SenderPage> {
   }
 
   void _checkMatchingOperator(String primaryScanned, String secondaryScanned) {
-    String currentUserPrimaryNumber = historyController.primaryNumber.value;
+    String currentUserPrimaryNumber = historyController.primaryNumber.value.isNotEmpty ? historyController.primaryNumber.value : historyController.secondaryNumber.value;
 
     String operator1 = qrController.determineOperator(primaryScanned);
     String operator2 = qrController.determineOperator(secondaryScanned);
     String userOperator = qrController.determineOperator(currentUserPrimaryNumber);
 
     if (userOperator == operator1 || userOperator == operator2) {
+      logger.e("------$userOperator---------operator1=$operator1-----------operator2=$operator2");
       String matchingNumber = (userOperator == operator1) ? primaryScanned : secondaryScanned;
+      logger.e("$matchingNumber");
       _showAmountDialog(matchingNumber);
     } else {
       Get.snackbar("Opérateur non trouvé", "Aucun opérateur ne correspond.");
@@ -133,8 +137,8 @@ class _SenderPageState extends State<SenderPage> {
 
 
   void _showAmountDialog(String matchingNumber) {
+    logger.w(matchingNumber);
     TextEditingController amountController = TextEditingController();
-
     Get.dialog(
       AlertDialog(
         title: Text('Insérez le montant'),
@@ -145,11 +149,13 @@ class _SenderPageState extends State<SenderPage> {
         ),
         actions: [
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               String amount = amountController.text.trim();
               if (amount.isNotEmpty) {
+                Get.back();
                 _sendUSSDRequest(matchingNumber, amount);
-                Get.back(); // Fermer la boîte de dialogue
+                //await Future.delayed(Duration(seconds: 3));
+                //Get.back();
               }
             },
             child: Text('Valider'),
@@ -181,20 +187,24 @@ class _SenderPageState extends State<SenderPage> {
       // Lancer la requête USSD en arrière-plan
       final intent = AndroidIntent(
         action: 'android.intent.action.CALL',
-        data: 'tel:$ussdCode',
+        data: 'tel:$ussdCode2',
         flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
       );
       await intent.launch();
 
       // Ajouter l'opération à l'historique
-      historyController.addToHistory("Envoyé $amount à $matchingNumber via USSD ($ussdCode2) - Réponse: succès");
-      Get.snackbar("USSD Request", "Envoi de $ussdCode2");
+      historyController.addToHistory("Envoyé $amount à $matchingNumber via USSD ($ussdCode) - Réponse: succès");
+      Get.snackbar("USSD Request", "Envoi de $ussdCode2",
+          backgroundColor: Colors.cyan,
+          colorText: Colors.white
+      );
     } else {
       // Gérer le cas où la permission est refusée
-      Get.snackbar('Permission refusée', 'L\'application n\'a pas la permission de passer des appels.');
+      Get.snackbar('Permission refusée', 'L\'application n\'a pas la permission de passer des appels.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white
+      );
     }
-
-
   }
 
 
