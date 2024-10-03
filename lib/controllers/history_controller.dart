@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class HistoryController extends GetxController {
   var primaryNumber = ''.obs;
   var secondaryNumber = ''.obs;
+  var amountFcfa = ''.obs;
   var scannedHistory = <String>[].obs;
   var ussdRequests = <String>[].obs;
   var isLoading = true.obs;  // Ajout d'un état de chargement
@@ -40,14 +41,17 @@ class HistoryController extends GetxController {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     primaryNumber.value = prefs.getString('primaryNumber') ?? '';
     secondaryNumber.value = prefs.getString('secondaryNumber') ?? '';
+    amountFcfa.value = prefs.getString('amount') ?? '';
   }
 
-  Future<void> saveNumbers(String primary, String secondary) async {
+  Future<void> saveNumbers(String primary, String secondary, String amount) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     primaryNumber.value = primary;
     secondaryNumber.value = secondary;
+    amountFcfa.value = amount;
     await prefs.setString('primaryNumber', primary);
     await prefs.setString('secondaryNumber', secondary);
+    await prefs.setString('amount', amount);
   }
 
   Future<void> _loadHistory() async {

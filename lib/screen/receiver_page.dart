@@ -66,20 +66,20 @@ class _ReceiverPageState extends State<ReceiverPage> {
         child: Obx(() => Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if(controller.primaryNumber.value.isEmpty && controller.secondaryNumber.value.isEmpty)...{
+            if(controller.primaryNumber.value.isEmpty && controller.secondaryNumber.value.isEmpty && controller.amountFcfa.value.isEmpty)...{
               Center(
-                child: Text("Veuillez renseigner vos numéros de téléphone\n pour générer votre QR code"),
+                child: Text("Veuillez renseigner vos numéros de téléphone\n et le montant à recevoir pour générer votre QR code"),
               )
             } else...{
               QrImageView(
-                data: '${controller.primaryNumber.value}/${controller.secondaryNumber.value}',
+                data: '${controller.primaryNumber.value}/${controller.secondaryNumber.value}/${controller.amountFcfa.value}',
                 size: 250,
                 version: QrVersions.auto,
                 embeddedImage: AssetImage('assets/images/icon.jpg'), // Assurez-vous que le logo est bien là
               ),
               SizedBox(height: 20),
               Text(
-                'Principal: ${controller.primaryNumber.value}\nSecondaire: ${controller.secondaryNumber.value}',
+                'SIM 1: ${controller.primaryNumber.value}\nSIM 2: ${controller.secondaryNumber.value}\nMontant à recevoir: ${controller.amountFcfa.value} Fcfa',
                 textAlign: TextAlign.center,
               ),
             },
@@ -97,11 +97,12 @@ class _ReceiverPageState extends State<ReceiverPage> {
   void _showNumberDialog(BuildContext context) {
     String primaryNumber = controller.primaryNumber.value;
     String secondaryNumber = controller.secondaryNumber.value;
+    String amount = controller.amountFcfa.value;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Center(child: Text('Entrer vos numéros de téléphone')),
+        title: Center(child: Text('Entrer vos informations')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -121,6 +122,14 @@ class _ReceiverPageState extends State<ReceiverPage> {
               decoration: InputDecoration(hintText: 'Secondaire'),
               controller: TextEditingController(text: secondaryNumber),
             ),
+            TextField(
+              controller: TextEditingController(text: amount),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                amount = value;
+              },
+              decoration: InputDecoration(hintText: 'Entrez le montant'),
+            ),
           ],
         ),
         actions: [
@@ -132,7 +141,7 @@ class _ReceiverPageState extends State<ReceiverPage> {
           ),
           TextButton(
             onPressed: () {
-              controller.saveNumbers(primaryNumber, secondaryNumber);
+              controller.saveNumbers(primaryNumber, secondaryNumber, amount);
               Get.back();
             },
             child: Text('Sauvegarder'),

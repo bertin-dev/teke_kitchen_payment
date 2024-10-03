@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:vibration/vibration.dart';
 import '../controllers/history_controller.dart';
 import '../controllers/qr_controller.dart';
 import '../themes/app_color.dart';
@@ -22,6 +23,7 @@ class _SenderPageState extends State<SenderPage> {
   final QRController qrController = Get.put(QRController());
   final HistoryController historyController = Get.find<HistoryController>();
   Logger logger = Logger();
+  bool isProcessing = false;
 
   @override
   void reassemble() {
@@ -100,82 +102,79 @@ class _SenderPageState extends State<SenderPage> {
     );
   }
 
-
   void _onQRViewCreated(QRViewController qrController) {
     this.controller = qrController;
-    qrController.scannedDataStream.listen((scanData) {
-      String scannedCode = scanData.code!;
-      this.qrController.scannedData.value = scannedCode;
+    qrController.scannedDataStream.listen((scanData) async {
 
-      // Diviser le code scanné pour obtenir les numéros de téléphone
-      if (scannedCode.contains('/')) {
-        List<String> scannedNumbers = scannedCode.split('/');
-        String primaryScanned = scannedNumbers[0];
-        String secondaryScanned = scannedNumbers[1];
+      if (!isProcessing) { // S'assurer que la fonction n'est appelée qu'une seule fois
+        // Vibration du téléphone pour signaler que le scan est réussi
+        if (await Vibration.hasVibrator() == true) {
+          Vibration.vibrate();
+        } else if(await Vibration.hasAmplitudeControl() == true) {
+          Vibration.vibrate(amplitude: 128);
+        } else {
+          Get.snackbar('Erreur', 'Votre appareil ne supporte pas la vibration.');
+        }
+        isProcessing = true;  // Marquer comme en cours de traitement
+        String scannedCode = scanData.code!;
+        this.qrController.scannedData.value = scannedCode;
+        // Vérification si le code QR contient deux numéros
+        if (scannedCode.contains('/')) {
+          List<String> scannedNumbers = scannedCode.split('/');
+          String primaryScanned = scannedNumbers[0]; // primary phone
+          String secondaryScanned = scannedNumbers[1]; // secondady phone
+          String amount = scannedNumbers[2]; // amount
+          _checkMatchingOperator(primaryScanned, secondaryScanned, amount);
 
-        _checkMatchingOperator(primaryScanned, secondaryScanned);
+      // Remettre le drapeau après traitement
+      Future.delayed(Duration(seconds: 4), () {
+      isProcessing = false;
+      });
+
+        } else {
+          Get.snackbar('QR Code invalide', 'Le code QR ne contient pas les numéros attendus.',
+              backgroundColor: Colors.red,
+              colorText: Colors.white);
+        }
       }
     });
   }
 
-  void _checkMatchingOperator(String primaryScanned, String secondaryScanned) {
-    String currentUserPrimaryNumber = historyController.primaryNumber.value.isNotEmpty ? historyController.primaryNumber.value : historyController.secondaryNumber.value;
+  Future<void> _checkMatchingOperator(String primaryScanned, String secondaryScanned, String amountReceiver) async {
+    String currentNumberSender = historyController.primaryNumber.value.isNotEmpty ? historyController.primaryNumber.value : historyController.secondaryNumber.value;
+    String userOperatorSender = qrController.determineOperator(currentNumberSender);
+    String operatorReceiver1 = qrController.determineOperator(primaryScanned);
+    String operatorReceiver2 = qrController.determineOperator(secondaryScanned);
 
-    String operator1 = qrController.determineOperator(primaryScanned);
-    String operator2 = qrController.determineOperator(secondaryScanned);
-    String userOperator = qrController.determineOperator(currentUserPrimaryNumber);
-
-    if (userOperator == operator1 || userOperator == operator2) {
-      logger.e("------$userOperator---------operator1=$operator1-----------operator2=$operator2");
-      String matchingNumber = (userOperator == operator1) ? primaryScanned : secondaryScanned;
-      logger.e("$matchingNumber");
-      _showAmountDialog(matchingNumber);
+    if (userOperatorSender == operatorReceiver1 || userOperatorSender == operatorReceiver2) {
+      String matchingNumber = (userOperatorSender == operatorReceiver1) ? primaryScanned : secondaryScanned;
+      //_showAmountDialog(matchingNumber);
+      if(amountReceiver != 0){
+        // Lancer la requête USSD
+        await _sendUSSDRequest(matchingNumber, amountReceiver, userOperatorSender);
+      } else{
+        Get.snackbar("Montant introuvable", "Veuillez vérifier le montant de la commande",
+            backgroundColor: Colors.red,
+            colorText: Colors.white);
+      }
     } else {
-      Get.snackbar("Opérateur non trouvé", "Aucun opérateur ne correspond.");
+      Get.snackbar("Opérateur non trouvé", "Aucun opérateur ne correspond.",
+          backgroundColor: Colors.red,
+          colorText: Colors.white);
     }
   }
 
-
-  void _showAmountDialog(String matchingNumber) {
-    logger.w(matchingNumber);
-    TextEditingController amountController = TextEditingController();
-    Get.dialog(
-      AlertDialog(
-        title: Text('Insérez le montant'),
-        content: TextField(
-          controller: amountController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(hintText: 'Entrez le montant'),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () async {
-              String amount = amountController.text.trim();
-              if (amount.isNotEmpty) {
-                Get.back();
-                _sendUSSDRequest(matchingNumber, amount);
-                //await Future.delayed(Duration(seconds: 3));
-                //Get.back();
-              }
-            },
-            child: Text('Valider'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _sendUSSDRequest(String matchingNumber, String amount) async {
-    String currentUserPrimaryNumber = historyController.primaryNumber.value;
-    String userOperator = qrController.determineOperator(currentUserPrimaryNumber);
+  Future<void> _sendUSSDRequest(String matchingNumberReceiver, String amountReceiver, String userOperatorSender) async {
     String ussdCode;
 
-    if (userOperator == "orange") {
-      ussdCode = "#150*1*1*$matchingNumber*$amount#";
+    // Générer le code USSD en fonction de l'opérateur
+    if (userOperatorSender == "orange") {
+      ussdCode = "#150*1*1*$matchingNumberReceiver*$amountReceiver#";
     } else {
-      ussdCode = "*126*1*1*$matchingNumber*$amount#";
+      ussdCode = "*126*1*1*$matchingNumberReceiver*$amountReceiver#";
     }
-    String ussdCode2 = Uri.encodeComponent(ussdCode);
+
+    String ussdCodeEncoded = Uri.encodeComponent(ussdCode);
 
     // Demander la permission d'appel
     var status = await Permission.phone.status;
@@ -184,30 +183,43 @@ class _SenderPageState extends State<SenderPage> {
     }
 
     if (status.isGranted) {
-      // Lancer la requête USSD en arrière-plan
-      final intent = AndroidIntent(
-        action: 'android.intent.action.CALL',
-        data: 'tel:$ussdCode2',
-        flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
-      );
-      await intent.launch();
+      try {
+        final intent = AndroidIntent(
+          action: 'android.intent.action.CALL',
+          data: 'tel:$ussdCodeEncoded',
+          flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
+        );
+        await intent.launch();
 
-      // Ajouter l'opération à l'historique
-      historyController.addToHistory("Envoyé $amount à $matchingNumber via USSD ($ussdCode) - Réponse: succès");
-      Get.snackbar("USSD Request", "Envoi de $ussdCode2",
-          backgroundColor: Colors.cyan,
-          colorText: Colors.white
-      );
+        // Ajouter à l'historique
+        historyController.addToHistory("Envoyé $amountReceiver Fcfa à $matchingNumberReceiver via USSD ($ussdCode)");
+
+        // Afficher une notification de succès
+        Get.snackbar(
+            'Succès',
+            'Requête USSD envoyée : $ussdCode',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          duration: Duration(seconds: 10),
+        );
+      } catch (e) {
+        // Gérer les erreurs liées à l'envoi de la requête USSD
+        Get.snackbar(
+            'Erreur',
+            'Échec lors de l\'envoi de la requête USSD.',
+            backgroundColor: Colors.red,
+            colorText: Colors.white
+        );
+      }
     } else {
-      // Gérer le cas où la permission est refusée
-      Get.snackbar('Permission refusée', 'L\'application n\'a pas la permission de passer des appels.',
+      Get.snackbar(
+          'Permission refusée',
+          'L\'application n\'a pas la permission de passer des appels.',
           backgroundColor: Colors.red,
           colorText: Colors.white
       );
     }
   }
-
-
 
   @override
   void dispose() {
@@ -215,3 +227,4 @@ class _SenderPageState extends State<SenderPage> {
     super.dispose();
   }
 }
+
