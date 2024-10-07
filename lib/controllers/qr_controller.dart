@@ -15,8 +15,8 @@ class QRController extends GetxController {
     String prefix = cleanedNumber.substring(0, 3);
 
     // Préfixes pour MTN et Orange Cameroun
-    List<String> mtnPrefixes = ['650', '651', '652', '653', '654', '680', '681', '682', '683', '670', '671', '672', '673', '674', '675', '676', '677', '678', '679'];
-    List<String> orangePrefixes = ['655', '656', '657', '658', '659', '690', '691', '692', '693', '694', '695', '696', '697', '698', '699', '688'];
+    List<String> mtnPrefixes = ['650', '651', '652', '653', '654', '680', '681', '682', '683', '684', '670', '671', '672', '673', '674', '675', '676', '677', '678', '679'];
+    List<String> orangePrefixes = ['655', '656', '657', '658', '659', '690', '691', '692', '693', '694', '695', '696', '697', '698', '699', '685', '686', '687', '688', '689'];
 
     // Déterminer l'opérateur
     if (mtnPrefixes.contains(prefix)) {
