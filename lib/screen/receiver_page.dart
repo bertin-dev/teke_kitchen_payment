@@ -4,8 +4,8 @@ import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:teke_kitchen_payments/themes/app_color.dart';
-import '../controllers/history_controller.dart';
-import '../controllers/qr_controller.dart';
+import 'package:wakelock/wakelock.dart';
+import '../controllers/sender_controller.dart';
 
 class ReceiverPage extends StatefulWidget {
   const ReceiverPage({super.key});
@@ -15,18 +15,20 @@ class ReceiverPage extends StatefulWidget {
 }
 
 class _ReceiverPageState extends State<ReceiverPage> {
-  final HistoryController controller = Get.find<HistoryController>();
+  final SenderController senderController = Get.find<SenderController>();
   double _initialBrightness = 0.5; // Luminosité par défaut (peut être changée)
 
   @override
   void initState() {
     super.initState();
     _setMaxBrightness(); // Augmente la luminosité au maximum quand la page est ouverte
+    Wakelock.enable(); // Garder l'écran allumé
   }
 
   @override
   void dispose() {
     _restoreBrightness(); // Restaure la luminosité normale quand la page est fermée
+    Wakelock.disable();
     super.dispose();
   }
 
@@ -66,20 +68,20 @@ class _ReceiverPageState extends State<ReceiverPage> {
         child: Obx(() => Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if(controller.primaryNumber.value.isEmpty && controller.secondaryNumber.value.isEmpty && controller.amountFcfa.value.isEmpty)...{
+            if(senderController.primaryNumber.value.isEmpty && senderController.secondaryNumber.value.isEmpty && senderController.amountFcfa.value.isEmpty)...{
               Center(
                 child: Text("Veuillez renseigner vos numéros de téléphone\n et le montant à recevoir pour générer votre QR code"),
               )
             } else...{
               QrImageView(
-                data: '${controller.primaryNumber.value}/${controller.secondaryNumber.value}/${controller.amountFcfa.value}',
+                data: '${senderController.primaryNumber.value}/${senderController.secondaryNumber.value}/${senderController.amountFcfa.value}',
                 size: 250,
                 version: QrVersions.auto,
                 embeddedImage: AssetImage('assets/images/icon.jpg'), // Assurez-vous que le logo est bien là
               ),
               SizedBox(height: 20),
               Text(
-                'SIM 1: ${controller.primaryNumber.value}\nSIM 2: ${controller.secondaryNumber.value}\nMontant à recevoir: ${controller.amountFcfa.value} Fcfa',
+                'SIM 1: ${senderController.primaryNumber.value}\nSIM 2: ${senderController.secondaryNumber.value}\nMontant à recevoir: ${senderController.amountFcfa.value} Fcfa',
                 textAlign: TextAlign.center,
               ),
             },
@@ -95,9 +97,9 @@ class _ReceiverPageState extends State<ReceiverPage> {
   }
 
   void _showNumberDialog(BuildContext context) {
-    String primaryNumber = controller.primaryNumber.value;
-    String secondaryNumber = controller.secondaryNumber.value;
-    String amount = controller.amountFcfa.value;
+    String primaryNumber = senderController.primaryNumber.value;
+    String secondaryNumber = senderController.secondaryNumber.value;
+    String amount = senderController.amountFcfa.value;
 
     showDialog(
       context: context,
@@ -141,7 +143,7 @@ class _ReceiverPageState extends State<ReceiverPage> {
           ),
           TextButton(
             onPressed: () {
-              controller.saveNumbers(primaryNumber, secondaryNumber, amount);
+              senderController.saveNumbers(primaryNumber, secondaryNumber, amount);
               Get.back();
             },
             child: Text('Sauvegarder'),

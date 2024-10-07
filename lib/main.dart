@@ -5,11 +5,15 @@ import 'package:teke_kitchen_payments/screen/splash_screen.dart';
 import 'package:teke_kitchen_payments/themes/app_color.dart';
 
 import 'controllers/history_controller.dart';
+import 'controllers/sender_controller.dart';
+import 'controllers/sms_controller.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
-  Get.put(HistoryController()); // Initialisation immédiate
+  Get.put(HistoryController());
+  Get.put(SenderController());
+  Get.put(SMSController());
   runApp(const MyApp());
 }
 

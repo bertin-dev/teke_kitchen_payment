@@ -1,14 +1,16 @@
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import 'package:timeago/timeago.dart' as timeago_fr; // Ajoute cet import pour les locales
+
+
+import '../services/database_helper.dart';
+
 
 class HistoryController extends GetxController {
-  var primaryNumber = ''.obs;
-  var secondaryNumber = ''.obs;
-  var amountFcfa = ''.obs;
-  var scannedHistory = <String>[].obs;
-  var ussdRequests = <String>[].obs;
-  var isLoading = true.obs;  // Ajout d'un état de chargement
+  final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  var historyList = <Map<String, dynamic>>[].obs;
+  var isLoading = true.obs;
 
   @override
   Future<void> onInit() async {
@@ -18,57 +20,32 @@ class HistoryController extends GetxController {
     if (!status.isGranted) {
       status = await Permission.phone.request();
     }
-
-    _loadData();
+    timeago_fr.setLocaleMessages('fr', timeago_fr.FrMessages()); // Enregistre les messages en français
+    loadHistory();  // Charger l'historique au démarrage
   }
 
-  // Ajouter une opération à l'historique
-  Future<void> addToHistory(String operation) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> history = prefs.getStringList('history') ?? [];
-    history.add(operation);
-    await prefs.setStringList('history', history);
-    this.scannedHistory.assignAll(history);
+  // Méthode pour charger l'historique depuis la base de données
+  Future<void> loadHistory() async {
+    isLoading.value = true;
+    await Future.delayed(Duration(seconds: 5)); // Simulate loading time
+    isLoading.value = false;
+    historyList.value = await dbHelper.getHistory();
   }
 
-  Future<void> _loadData() async {
-    await _loadNumbers();
-    await _loadHistory();
-    isLoading.value = false;  // Fin du chargement
+  // Méthode pour ajouter une transaction dans l'historique
+  Future<void> addToHistory(String operator, String description, String timeTransaction,  bool isSuccess) async {
+    await dbHelper.insertHistory(operator, description, timeTransaction, isSuccess);
+    await loadHistory();  // Recharger l'historique après ajout
   }
 
-  Future<void> _loadNumbers() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    primaryNumber.value = prefs.getString('primaryNumber') ?? '';
-    secondaryNumber.value = prefs.getString('secondaryNumber') ?? '';
-    amountFcfa.value = prefs.getString('amount') ?? '';
+  // Méthode pour supprimer un élément de l'historique
+  Future<void> deleteFromHistory(int id) async {
+    await dbHelper.deleteHistory(id);
+    await loadHistory();  // Recharger l'historique après suppression
   }
 
-  Future<void> saveNumbers(String primary, String secondary, String amount) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    primaryNumber.value = primary;
-    secondaryNumber.value = secondary;
-    amountFcfa.value = amount;
-    await prefs.setString('primaryNumber', primary);
-    await prefs.setString('secondaryNumber', secondary);
-    await prefs.setString('amount', amount);
-  }
-
-  Future<void> _loadHistory() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    scannedHistory.value = prefs.getStringList('scannedHistory') ?? [];
-    ussdRequests.value = prefs.getStringList('ussdRequests') ?? [];
-  }
-
-  Future<void> addScannedCode(String code) async {
-    scannedHistory.add(code);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('scannedHistory', scannedHistory);
-  }
-
-  Future<void> addUSSDRequest(String request) async {
-    ussdRequests.add(request);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('ussdRequests', ussdRequests);
+  String formatTimestamp(String timestamp) {
+    DateTime dateTime = DateTime.parse(timestamp);
+    return timeago.format(dateTime, locale: 'fr'); // 'fr' pour le formatage en français
   }
 }

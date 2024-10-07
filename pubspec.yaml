@@ -44,7 +44,12 @@ dependencies:
   android_intent_plus: ^5.1.0
   permission_handler: ^11.3.1
   screen_brightness: ^1.0.1
-  vibration: ^2.0.0
+  wakelock: ^0.6.0
+  sqflite: ^2.3.3+1
+  path: ^1.9.0
+  telephony: ^0.2.0
+  vibration: ^1.7.7
+  timeago: ^3.7.0
 
 dev_dependencies:
   flutter_test:

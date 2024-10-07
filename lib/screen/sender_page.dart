@@ -8,8 +8,10 @@ import 'package:logger/logger.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:vibration/vibration.dart';
+import 'package:wakelock/wakelock.dart';
 import '../controllers/history_controller.dart';
 import '../controllers/qr_controller.dart';
+import '../controllers/sender_controller.dart';
 import '../themes/app_color.dart';
 
 class SenderPage extends StatefulWidget {
@@ -21,7 +23,7 @@ class _SenderPageState extends State<SenderPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   QRViewController? controller;
   final QRController qrController = Get.put(QRController());
-  final HistoryController historyController = Get.find<HistoryController>();
+  final SenderController senderController = Get.find<SenderController>();
   Logger logger = Logger();
   bool isProcessing = false;
 
@@ -32,6 +34,12 @@ class _SenderPageState extends State<SenderPage> {
       controller?.pauseCamera();
     }
     controller?.resumeCamera();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Wakelock.enable(); // Garder l'écran allumé
   }
 
   @override
@@ -141,7 +149,7 @@ class _SenderPageState extends State<SenderPage> {
   }
 
   Future<void> _checkMatchingOperator(String primaryScanned, String secondaryScanned, String amountReceiver) async {
-    String currentNumberSender = historyController.primaryNumber.value.isNotEmpty ? historyController.primaryNumber.value : historyController.secondaryNumber.value;
+    String currentNumberSender = senderController.primaryNumber.value.isNotEmpty ? senderController.primaryNumber.value : senderController.secondaryNumber.value;
     String userOperatorSender = qrController.determineOperator(currentNumberSender);
     String operatorReceiver1 = qrController.determineOperator(primaryScanned);
     String operatorReceiver2 = qrController.determineOperator(secondaryScanned);
@@ -192,7 +200,7 @@ class _SenderPageState extends State<SenderPage> {
         await intent.launch();
 
         // Ajouter à l'historique
-        historyController.addToHistory("Envoyé $amountReceiver Fcfa à $matchingNumberReceiver via USSD ($ussdCode)");
+        //senderController.addToHistory("Envoyé $amountReceiver Fcfa à $matchingNumberReceiver via USSD ($ussdCode)");
 
         // Afficher une notification de succès
         Get.snackbar(
@@ -224,6 +232,7 @@ class _SenderPageState extends State<SenderPage> {
   @override
   void dispose() {
     controller?.dispose();
+    Wakelock.disable(); // Autoriser l'écran à s'éteindre lorsque l'utilisateur quitte la page
     super.dispose();
   }
 }
