@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'home_page.dart';
+import 'marchand_home_page.dart';
+import 'client_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,7 +32,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(Duration(seconds: 5), () {
-      Get.off(HomePage());
+      Get.off(MarchandHomePage());
+      //Get.off(ClientPage());
     });
   }
 
