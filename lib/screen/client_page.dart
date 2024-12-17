@@ -79,6 +79,7 @@ class _ClientPageState extends State<ClientPage> {
                       "Montant : ${clientController.amount.value}\n"
                       "Opérateur : ${clientController.operatorName.value}",
                   backgroundColor: Colors.green,
+                  colorText: AppColor.white
                 );
               },
               child: const Text("Voir les informations"),
@@ -112,7 +113,6 @@ class _ClientPageState extends State<ClientPage> {
         Future.delayed(Duration(seconds: 4), () {
           isProcessing = false;
         });
-
       }
     });
   }
