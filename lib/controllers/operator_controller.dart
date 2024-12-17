@@ -24,15 +24,16 @@ class OperatorController extends GetxController {
   }
 
 
-  void showMarchandNumberDialog(BuildContext context) {
-    TextEditingController phoneController = TextEditingController();
+  void showMarchandNumberDialog(BuildContext context, String label) {
+    TextEditingController marchandController = TextEditingController(text: label.toLowerCase() == "orange money" ? "0746656" : "781064");
 
     Get.defaultDialog(
       title: "Saisir le numéro marchand",
       content: Column(
         children: [
           TextField(
-            controller: phoneController,
+            controller: marchandController,
+            readOnly: true,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(
               labelText: "Numéro Marchand",
@@ -43,7 +44,7 @@ class OperatorController extends GetxController {
       ),
       confirm: ElevatedButton(
         onPressed: () {
-          String enteredPhone = phoneController.text;
+          String enteredPhone = marchandController.text;
           if (validateMarchandNumber(enteredPhone)) {
             marchandNumber.value = enteredPhone;
             Get.back();
@@ -86,7 +87,7 @@ class OperatorController extends GetxController {
     } else {
       Get.snackbar(
         "Erreur",
-        "Veuillez sélectionner un opérateur et entrer un numéro marchand valide",
+        "Veuillez sélectionner un opérateur",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,

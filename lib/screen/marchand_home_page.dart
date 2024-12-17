@@ -39,7 +39,7 @@ class MarchandHomePage extends StatelessWidget {
             SizedBox(height: 20,),
             Expanded(
               child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4),
                 itemCount: 12,
                 itemBuilder: (context, index) {
                   String label;

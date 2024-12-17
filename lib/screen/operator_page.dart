@@ -64,7 +64,7 @@ class OperatorPage extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         controller.setOperator(label);
-        controller.showMarchandNumberDialog(context);
+        controller.showMarchandNumberDialog(context, label);
         controller.setPhoneNumber;
       },
       child: Card(

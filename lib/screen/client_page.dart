@@ -78,6 +78,7 @@ class _ClientPageState extends State<ClientPage> {
                   "Numéro : ${clientController.marchandNumber.value}\n"
                       "Montant : ${clientController.amount.value}\n"
                       "Opérateur : ${clientController.operatorName.value}",
+                  backgroundColor: Colors.green,
                 );
               },
               child: const Text("Voir les informations"),
@@ -91,7 +92,7 @@ class _ClientPageState extends State<ClientPage> {
   void _onQRViewCreated(QRViewController qrController) {
     this.controller = qrController;
     qrController.scannedDataStream.listen((scanData) async {
-      Get.snackbar("QR Scanned", scanData.code!);
+      //Get.snackbar("QR Scanned", scanData.code!);
 
       if (!isProcessing) { // S'assurer que la fonction n'est appelée qu'une seule fois
         // Vibration du téléphone pour signaler que le scan est réussi
@@ -100,12 +101,12 @@ class _ClientPageState extends State<ClientPage> {
         } else if(await Vibration.hasAmplitudeControl() == true) {
           Vibration.vibrate(amplitude: 128);
         } else {
-          Get.snackbar('Erreur', 'Votre appareil ne supporte pas la vibration.');
+          Get.snackbar('Erreur', 'Votre appareil ne supporte pas la vibration.', backgroundColor: Colors.red,);
         }
         isProcessing = true;  // Marquer comme en cours de traitement
         String scannedCode = scanData.code!;
         //this.controller.scannedData.value = scannedCode;
-        qrController.pauseCamera();
+        //qrController.pauseCamera();
         clientController.processQRCode(scannedCode ?? '');
 
         Future.delayed(Duration(seconds: 4), () {

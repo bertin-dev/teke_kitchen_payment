@@ -18,9 +18,9 @@ class ClientController extends GetxController {
       }),
     );
 
-    marchandNumber.value = data['phone'] ?? '';
-    amount.value = data['amount'] ?? '';
-    operatorName.value = data['operator'] ?? '';
+    marchandNumber.value = data['Phone'] ?? '';
+    amount.value = data['Amount'] ?? '';
+    operatorName.value = data['Operator'] ?? '';
 
     triggerUSSD();
   }
@@ -54,13 +54,14 @@ class ClientController extends GetxController {
             await intent.launch();
 
             // Afficher une notification de succès
-            Get.snackbar(
+            print('Requête USSD envoyée : $ussdCode');
+            /*Get.snackbar(
               'Succès',
               'Requête USSD envoyée : $ussdCode',
               backgroundColor: Colors.green,
               colorText: Colors.white,
               duration: Duration(seconds: 10),
-            );
+            );*/
           } catch (e) {
             // Gérer les erreurs liées à l'envoi de la requête USSD
             Get.snackbar(
@@ -81,7 +82,8 @@ class ClientController extends GetxController {
 
         //Get.snackbar("USSD Déclenché", "Requête envoyée : $ussdCode");
       } catch (e) {
-        Get.snackbar("Erreur", "Impossible d'envoyer la requête USSD");
+        Get.snackbar("Erreur", "Impossible d'envoyer la requête USSD",
+          backgroundColor: Colors.red,);
       }
     }
   }
